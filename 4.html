@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#0A0A0B">
+<title>Műhely</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden}
+body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;background:#0A0A0B;color:#FFF;-webkit-font-smoothing:antialiased;font-size:17px}
+#app{height:100%;display:flex;flex-direction:column;position:relative}
+.screen{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:110px}
+button{font-family:inherit;border:none;background:none;cursor:pointer;color:inherit;font-size:inherit}
+.header{padding:24px 20px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:#0A0A0B;z-index:10}
+.dots{display:flex;gap:10px;align-items:center}
+.dot{width:14px;height:14px;border-radius:50%;opacity:.2;transition:all .3s}
+.dot.on{opacity:1;box-shadow:0 0 12px currentColor}
+.dot.red{background:#FF453A;color:#FF453A}
+.dot.green{background:#32D74B;color:#32D74B}
+.dot.yellow{background:#FFD60A;color:#FFD60A}
+.btn-round{width:44px;height:44px;border-radius:50%;background:#1C1C1E;display:flex;align-items:center;justify-content:center;font-size:20px;color:#FFF;transition:background .15s;flex-shrink:0}
+.btn-round:active{background:#2C2C2E}
+.filters{display:flex;gap:8px;padding:0 20px 20px;overflow-x:auto;scrollbar-width:none}
+.filters::-webkit-scrollbar{display:none}
+.pill{height:38px;padding:0 18px;border-radius:19px;background:#1C1C1E;color:#8E8E93;font-size:15px;font-weight:600;display:flex;align-items:center;white-space:nowrap;transition:all .2s}
+.pill.on{background:#FFF;color:#0A0A0B}
+.pill:active{transform:scale(.96)}
+.cards{display:flex;flex-direction:column;gap:12px;padding:0 20px 20px}
+.card{background:#141416;border-radius:24px;padding:20px 20px 20px 24px;position:relative;overflow:hidden;transition:transform .12s,background .15s}
+.card:active{transform:scale(.985);background:#1A1A1C}
+.card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;border-radius:0 4px 4px 0}
+.card.red::before{background:#FF453A}
+.card.yellow::before{background:#FFD60A}
+.card.green::before{background:#32D74B}
+.card.gray::before{background:#48484A}
+.card-name{font-size:20px;font-weight:700;letter-spacing:-.4px;line-height:1.2;display:flex;align-items:center}
+.mini-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-left:8px;flex-shrink:0}
+.mini-dot.red{background:#FF453A}
+.mini-dot.green{background:#32D74B}
+.mini-dot.yellow{background:#FFD60A}
+.card-meta{display:flex;align-items:center;gap:6px;margin-top:8px;font-size:15px;color:#8E8E93;font-weight:500}
+.card-meta.urgent{color:#FF453A}
+.card-meta.soon{color:#FFD60A}
+.thumbs{display:flex;gap:8px;margin-top:16px}
+.thumb{width:72px;height:72px;border-radius:16px;background:#1C1C1E;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;position:relative;font-size:24px;color:#48484A}
+.thumb img{width:100%;height:100%;object-fit:cover}
+.thumb .check{position:absolute;bottom:4px;right:4px;width:20px;height:20px;border-radius:50%;background:#32D74B;color:#000;font-size:12px;display:flex;align-items:center;justify-content:center;font-weight:800}
+.bottom-bar{position:fixed;bottom:0;left:0;right:0;padding:16px 20px calc(16px + env(safe-area-inset-bottom));background:linear-gradient(to top,#0A0A0B 60%,transparent);display:flex;justify-content:center;align-items:center;z-index:20}
+.btn-camera{height:60px;padding:0 40px;border-radius:30px;background:#FFF;color:#0A0A0B;font-size:17px;font-weight:700;letter-spacing:-.2px;display:flex;align-items:center;justify-content:center;gap:10px;transition:transform .12s;box-shadow:0 8px 24px rgba(255,255,255,.1)}
+.btn-camera:active{transform:scale(.96)}
+.btn-camera svg{width:22px;height:22px}
+.sub-header{padding:20px 20px 8px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:#0A0A0B;z-index:10}
+.back{height:44px;padding:0 18px;border-radius:22px;background:#1C1C1E;font-size:16px;font-weight:600;display:flex;align-items:center;gap:4px;color:#FFF}
+.back:active{background:#2C2C2E}
+h2{font-size:30px;font-weight:800;letter-spacing:-.8px;padding:8px 20px 6px}
+.sub{font-size:15px;color:#8E8E93;padding:0 20px 20px;font-weight:500}
+.photo-preview{margin:8px 20px 0;aspect-ratio:4/3;border-radius:24px;background:#141416;display:flex;align-items:center;justify-content:center;overflow:hidden;color:#48484A;font-size:16px;font-weight:600;border:1.5px dashed #2C2C2E}
+.photo-preview img{width:100%;height:100%;object-fit:cover}
+.ai-tip{margin:16px 20px 0;padding:18px 20px;background:#141416;border-radius:20px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.ai-tip .label{font-size:22px;font-weight:800;letter-spacing:-.4px}
+.ai-tip .badge{font-size:13px;color:#8E8E93;font-weight:600;margin-top:2px}
+.section{margin:24px 20px 0}
+.section-title{font-size:12px;font-weight:700;color:#8E8E93;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;padding-left:4px}
+.tag-cloud{display:flex;flex-wrap:wrap;gap:8px}
+.tag{height:40px;padding:0 18px;border-radius:20px;background:#1C1C1E;color:#FFF;font-size:15px;font-weight:600;display:flex;align-items:center;transition:all .15s}
+.tag:active{transform:scale(.94)}
+.tag.on{background:#FFF;color:#0A0A0B}
+.field{width:100%;background:#141416;border-radius:18px;padding:18px;font-size:17px;font-family:inherit;color:#FFF;border:none;outline:none;resize:none;line-height:1.4;transition:background .15s}
+.field:focus{background:#1A1A1C}
+.field::placeholder{color:#48484A}
+.field-wrap{position:relative}
+.mic{position:absolute;right:12px;bottom:12px;width:44px;height:44px;border-radius:50%;background:#2C2C2E;display:flex;align-items:center;justify-content:center;color:#FFF;font-size:18px}
+.mic:active{background:#3A3A3C}
+.btn-big{height:58px;border-radius:29px;background:#FFF;color:#0A0A0B;font-size:17px;font-weight:700;letter-spacing:-.2px;display:flex;align-items:center;justify-content:center;width:calc(100% - 40px);margin:28px 20px 0;transition:all .15s}
+.btn-big:active{transform:scale(.98)}
+.btn-big:disabled{background:#1C1C1E;color:#48484A;cursor:default}
+.btn-big.green{background:#32D74B;color:#000}
+.btn-big.ghost{background:#1C1C1E;color:#FFF}
+.settings-row{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;background:#141416;margin:0 20px 12px;border-radius:20px}
+.color-picker{display:flex;gap:14px}
+.color-opt{width:40px;height:40px;border-radius:50%;border:3px solid transparent;transition:border-color .15s}
+.color-opt.on{border-color:#FFF}
+.color-opt.red{background:#FF453A}
+.color-opt.green{background:#32D74B}
+.color-opt.yellow{background:#FFD60A}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:0 20px 12px}
+.chip{height:38px;padding:0 16px;border-radius:19px;background:#141416;font-size:14px;font-weight:600;display:flex;align-items:center;gap:10px}
+.chip .x{color:#8E8E93;font-size:18px;padding:0 2px;line-height:1}
+.chip.add{background:#0A0A0B;border:1.5px dashed #2C2C2E;color:#8E8E93}
+.item-list{display:flex;flex-direction:column;gap:14px;padding:8px 20px 0}
+.item-card{background:#141416;border-radius:24px;padding:18px}
+.item-photo{aspect-ratio:4/3;border-radius:18px;background:#1C1C1E;overflow:hidden;display:flex;align-items:center;justify-content:center;color:#48484A;font-size:14px;font-weight:600}
+.item-photo img{width:100%;height:100%;object-fit:cover}
+.item-title{font-size:18px;font-weight:800;margin-top:14px;letter-spacing:-.3px}
+.item-note{font-size:15px;color:#8E8E93;margin-top:6px;line-height:1.45;font-weight:500}
+.item-status{display:flex;align-items:center;gap:8px;margin-top:14px}
+.status-btn{height:42px;padding:0 18px;border-radius:21px;background:#1C1C1E;font-size:15px;font-weight:700;display:flex;align-items:center;gap:6px;transition:all .15s}
+.status-btn:active{transform:scale(.96)}
+.status-btn.done{background:#32D74B;color:#000}
+.empty{text-align:center;padding:80px 20px;color:#48484A;font-size:16px;font-weight:600}
+</style>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+const LS_KEY = 'muhely_v4';
+const defaultState = {
+  screen: 'list', myColor: 'red', filter: 'active',
+  cards: [], detailId: null, newItem: null,
+  tags: ['ragasztás','gravírozás','hiányzó darab','csiszolás','fúrás','festés','egyéb'],
+  categories: ['porcelán','üveg','kerámia','kristály'],
+  shelves: ['M','P1','P2','P3']
+};
+
+let state = loadState();
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (raw) return Object.assign({}, defaultState, JSON.parse(raw));
+  } catch(e) {}
+  return JSON.parse(JSON.stringify(defaultState));
+}
+
+function saveState() {
+  localStorage.setItem(LS_KEY, JSON.stringify({
+    myColor: state.myColor, cards: state.cards,
+    tags: state.tags, categories: state.categories, shelves: state.shelves
+  }));
+}
+
+function daysFromNow(n) {
+  const d = new Date(); d.setDate(d.getDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+function daysUntil(dateStr) {
+  const d = new Date(dateStr); d.setHours(0,0,0,0);
+  const t = new Date(); t.setHours(0,0,0,0);
+  return Math.round((d - t) / 86400000);
+}
+
+function daysLabel(days) {
+  if (days < 0) return `${-days} napja lejárt`;
+  if (days === 0) return 'ma';
+  if (days === 1) return 'holnap';
+  return `${days} nap`;
+}
+
+function formatPhone(raw) {
+  if (!raw) return '';
+  let s = String(raw).replace(/[^\d+]/g, '');
+  if (s.startsWith('+36')) s = '0' + s.slice(3);
+  if (s.startsWith('0036')) s = '0' + s.slice(4);
+  if (s.startsWith('06')) s = '0' + s.slice(2);
+  if (/^0\d{9}$/.test(s)) {
+    const rest = s.slice(1);
+    if (rest.startsWith('1')) {
+      return `1/ ${rest.slice(1,4)} ${rest.slice(4,6)} ${rest.slice(6,8)}`;
+    }
+    return `${rest.slice(0,2)}/ ${rest.slice(2,5)} ${rest.slice(5,7)} ${rest.slice(7,9)}`;
+  }
+  if (s.startsWith('+')) {
+    const digits = s.slice(1);
+    if (digits.length > 10) {
+      return '+' + digits.replace(/(\d{3})(\d{3})(\d{3})(\d+)/, '$1 $2 $3 $4');
+    }
+    return '+' + digits;
+  }
+  return raw;
+}
+
+function uid() { return Math.random().toString(36).slice(2,9); }
+
+const app = document.getElementById('app');
+
+function render() {
+  if (state.screen === 'list') app.innerHTML = renderList();
+  else if (state.screen === 'newItem') app.innerHTML = renderNewItem();
+  else if (state.screen === 'detail') app.innerHTML = renderDetail();
+  else if (state.screen === 'settings') app.innerHTML = renderSettings();
+  else if (state.screen === 'camera') app.innerHTML = renderCamera();
+  else if (state.screen === 'scanner') app.innerHTML = renderScanner();
+  attachEvents();
+  if (state.screen === 'camera') startCamera();
+  if (state.screen === 'scanner') startScanner();
+  saveState();
+}
+
+function renderList() {
+  const active = state.cards.filter(c => !c.picked);
+  const done = state.cards.filter(c => !c.picked && c.items.length > 0 && c.items.every(i => i.done));
+  const picked = state.cards.filter(c => c.picked);
+  let list = active;
+  if (state.filter === 'done') list = done;
+  if (state.filter === 'picked') list = picked;
+
+  return `
+    <div class="screen">
+      <div class="header">
+        <div class="dots">
+          <div class="dot red ${state.myColor === 'red' ? 'on' : ''}"></div>
+          <div class="dot green ${state.myColor === 'green' ? 'on' : ''}"></div>
+          <div class="dot yellow ${state.myColor === 'yellow' ? 'on' : ''}"></div>
+        </div>
+        <button class="btn-round" data-action="settings">⚙</button>
+      </div>
+      <div class="filters">
+        ${pill('active','Aktív')}
+        ${pill('done','Kész')}
+        ${pill('picked','Átvéve')}
+      </div>
+      <div class="cards">
+        ${list.length === 0 ? '<div class="empty">—</div>' : ''}
+        ${list.map(renderCard).join('')}
+      </div>
+    </div>
+    <div class="bottom-bar">
+      <button class="btn-round" data-action="scanner" style="margin-right:12px">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#FFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/>
+          <line x1="3" y1="12" x2="21" y2="12"/>
+        </svg>
+      </button>
+      <button class="btn-camera" data-action="newItem">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+          <circle cx="12" cy="13" r="4"/>
+        </svg>
+        Kamera
+      </button>
+    </div>
+  `;
+}
+
+function pill(key, label) {
+  return `<button class="pill ${state.filter === key ? 'on' : ''}" data-filter="${key}">${label}</button>`;
+}
+
+function deadlineColor(card) {
+  if (card.picked) return 'gray';
+  const allDone = card.items.length > 0 && card.items.every(i => i.done);
+  if (allDone) return 'gray';
+  const days = daysUntil(card.deadline);
+  if (days <= 0) return 'red';
+  if (days <= 3) return 'yellow';
+  return 'green';
+}
+
+function renderCard(card) {
+  const days = daysUntil(card.deadline);
+  const metaClass = days < 0 ? 'urgent' : days <= 1 ? 'soon' : '';
+  const color = deadlineColor(card);
+  return `
+    <div class="card ${color}" data-card="${card.id}">
+      <div class="card-name">
+        ${card.name}
+        <span class="mini-dot ${card.color}"></span>
+      </div>
+      <div class="card-meta ${metaClass}">${daysLabel(days)}</div>
+      <div class="thumbs">
+        ${card.items.map(it => `
+          <div class="thumb">
+            ${it.photo ? `<img src="${it.photo}" alt="">` : '📷'}
+            ${it.done ? '<div class="check">✓</div>' : ''}
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function renderNewItem() {
+  const n = state.newItem;
+  if (!n) return '';
+  const canSave = n.note.trim().length > 0 && n.name.trim().length > 0;
+  return `
+    <div class="screen">
+      <div class="sub-header">
+        <button class="back" data-action="back">← Vissza</button>
+      </div>
+      <div class="photo-preview" data-action="camera">
+        ${n.photo ? `<img src="${n.photo}" alt="">` : 'Fotó hozzáadása'}
+      </div>
+      <div class="ai-tip">
+        <div>
+          <div class="label">${n.aiName || '—'}</div>
+          <div class="badge">AI tipp (hamarosan)</div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-title">Mit kell csinálni?</div>
+        <div class="tag-cloud">
+          ${state.tags.map(t => `<button class="tag ${n.tags.includes(t) ? 'on' : ''}" data-tag="${t}">${t}</button>`).join('')}
+        </div>
+        <div class="field-wrap" style="margin-top:14px">
+          <textarea class="field" id="noteField" rows="3" placeholder="...">${n.note}</textarea>
+          <div class="mic">🎤</div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-title">Ügyfél</div>
+        <input class="field" id="nameField" placeholder="Név" value="${n.name}" style="margin-bottom:8px">
+        <input class="field" id="phoneField" placeholder="Telefon" value="${n.phone}" type="tel">
+      </div>
+      <div class="section">
+        <div class="section-title">Kategória</div>
+        <select class="field" id="catField">
+          ${state.categories.map(c => `<option value="${c}" ${n.category === c ? 'selected' : ''}>${c}</option>`).join('')}
+        </select>
+      </div>
+      <div class="section">
+        <div class="section-title">Polc</div>
+        <select class="field" id="shelfField">
+          ${state.shelves.map(s => `<option value="${s}" ${n.shelf === s ? 'selected' : ''}>${s}</option>`).join('')}
+        </select>
+      </div>
+      <div class="section">
+        <div class="section-title">Határidő</div>
+        <input class="field" id="deadlineField" type="date" value="${n.deadline}">
+      </div>
+      <button class="btn-big" id="saveBtn" ${canSave ? '' : 'disabled'}>Mentés</button>
+      <div style="height:40px"></div>
+    </div>
+  `;
+}
+
+function renderDetail() {
+  const card = state.cards.find(c => c.id === state.detailId);
+  if (!card) return '';
+  const days = daysUntil(card.deadline);
+  return `
+    <div class="screen">
+      <div class="sub-header">
+        <button class="back" data-action="back">← Vissza</button>
+        <button class="btn-round" data-action="addItemToCard">+</button>
+      </div>
+      <h2>${card.name}</h2>
+      <div class="sub">${formatPhone(card.phone)} · ${card.id}</div>
+      <div class="item-list">
+        ${card.items.map(it => `
+          <div class="item-card">
+            <div class="item-photo">
+              ${it.photo ? `<img src="${it.photo}" alt="">` : 'Fotó'}
+            </div>
+            <div class="item-title">${it.aiName || '—'}</div>
+            <div class="item-note">${it.note}</div>
+            <div class="item-note" style="margin-top:8px;color:#48484A;font-size:13px;text-transform:uppercase;letter-spacing:.5px;font-weight:700">
+              ${it.category || '—'} · ${it.shelf || 'M'}
+            </div>
+            <div class="item-status">
+              <button class="status-btn ${it.done ? 'done' : ''}" data-toggle-item="${it.id}">
+                ${it.done ? '✓ Kész' : 'Kész'}
+              </button>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+      <div class="sub" style="padding-top:24px">${daysLabel(days)}</div>
+      <button class="btn-big green" data-action="markAll">Kész mind</button>
+      ${card.picked
+        ? `<button class="btn-big ghost" data-action="unpick">Vissza munkába</button>`
+        : `<button class="btn-big ghost" data-action="pick">Átvéve</button>`}
+      <div style="height:40px"></div>
+    </div>
+  `;
+}
+
+function renderSettings() {
+  return `
+    <div class="screen">
+      <div class="sub-header">
+        <button class="back" data-action="back">← Vissza</button>
+      </div>
+      <h2>Színem</h2>
+      <div class="settings-row">
+        <div class="color-picker">
+          <button class="color-opt red ${state.myColor === 'red' ? 'on' : ''}" data-color="red"></button>
+          <button class="color-opt green ${state.myColor === 'green' ? 'on' : ''}" data-color="green"></button>
+          <button class="color-opt yellow ${state.myColor === 'yellow' ? 'on' : ''}" data-color="yellow"></button>
+        </div>
+      </div>
+      <h2 style="margin-top:28px">Kategóriák</h2>
+      <div class="chips" style="margin-top:12px">
+        ${state.categories.map(c => `<div class="chip">${c}<button class="x" data-del-cat="${c}">×</button></div>`).join('')}
+        <button class="chip add" data-action="addCat">+</button>
+      </div>
+      <h2 style="margin-top:28px">Polcok</h2>
+      <div class="chips" style="margin-top:12px">
+        ${state.shelves.map(s => `<div class="chip">${s}<button class="x" data-del-shelf="${s}">×</button></div>`).join('')}
+        <button class="chip add" data-action="addShelf">+</button>
+      </div>
+      <h2 style="margin-top:28px">Címkefelhő</h2>
+      <div class="chips" style="margin-top:12px">
+        ${state.tags.map(t => `<div class="chip">${t}<button class="x" data-del-tag="${t}">×</button></div>`).join('')}
+        <button class="chip add" data-action="addTag">+</button>
+      </div>
+      <div style="height:40px"></div>
+    </div>
+  `;
+}
+
+function renderCamera() {
+  return `
+    <div style="position:fixed;inset:0;background:#000;z-index:200;display:flex;flex-direction:column">
+      <div style="padding:20px;display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,.6)">
+        <button class="back" data-action="cancelCamera">Mégse</button>
+      </div>
+      <video id="camVideo" autoplay playsinline style="flex:1;width:100%;object-fit:cover;background:#000"></video>
+      <div style="padding:24px;display:flex;justify-content:center;background:rgba(0,0,0,.6)">
+        <button id="shutterBtn" style="width:76px;height:76px;border-radius:50%;background:#FFF;border:5px solid #888"></button>
+      </div>
+      <canvas id="camCanvas" style="display:none"></canvas>
+    </div>
+  `;
+}
+
+function renderScanner() {
+  return `
+    <div style="position:fixed;inset:0;background:#000;z-index:200;display:flex;flex-direction:column">
+      <div style="padding:20px;display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,.6)">
+        <button class="back" data-action="cancelScanner">Mégse</button>
+      </div>
+      <div id="qrReader" style="flex:1;width:100%"></div>
+    </div>
+  `;
+}
+</script>
+<script>
+let cameraStream = null;
+
+async function startCamera() {
+  const video = document.getElementById('camVideo');
+  if (!video) return;
+  try {
+    cameraStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' } }
+    });
+    video.srcObject = cameraStream;
+  } catch(e) {
+    alert('Kamera nem elérhető: ' + e.message);
+    state.screen = 'list'; render();
+  }
+}
+
+function stopCamera() {
+  if (cameraStream) {
+    cameraStream.getTracks().forEach(t => t.stop());
+    cameraStream = null;
+  }
+}
+
+function takePhoto() {
+  const video = document.getElementById('camVideo');
+  const canvas = document.getElementById('camCanvas');
+  if (!video || !canvas) return;
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+  if (state.newItem) {
+    state.newItem.photo = dataUrl;
+  }
+  stopCamera();
+  state.screen = 'newItem';
+  render();
+}
+
+let qrScanner = null;
+
+function startScanner() {
+  if (typeof Html5Qrcode === 'undefined') {
+    alert('QR könyvtár nem töltődött be.');
+    state.screen = 'list'; render();
+    return;
+  }
+  qrScanner = new Html5Qrcode('qrReader');
+  qrScanner.start(
+    { facingMode: 'environment' },
+    { fps: 10, qrbox: 250 },
+    (decodedText) => {
+      qrScanner.stop().then(() => {
+        qrScanner = null;
+        const card = state.cards.find(c => c.id === decodedText);
+        if (card) {
+          state.detailId = card.id;
+          state.screen = 'detail';
+        } else {
+          alert('Nem található: ' + decodedText);
+          state.screen = 'list';
+        }
+        render();
+      });
+    },
+    () => {}
+  ).catch(e => {
+    alert('Kamera hiba: ' + e.message);
+    state.screen = 'list'; render();
+  });
+}
+
+function stopScanner() {
+  if (qrScanner) {
+    qrScanner.stop().then(() => { qrScanner = null; }).catch(()=>{});
+  }
+}
+
+function attachEvents() {
+  document.querySelectorAll('[data-card]').forEach(el => {
+    el.addEventListener('click', () => {
+      state.detailId = el.dataset.card;
+      state.screen = 'detail';
+      render();
+    });
+  });
+
+  document.querySelectorAll('[data-action]').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const a = el.dataset.action;
+      if (a === 'settings') { state.screen = 'settings'; render(); }
+      else if (a === 'back') { state.screen = 'list'; state.newItem = null; render(); }
+      else if (a === 'newItem') {
+        state.newItem = {
+          photo: null, aiName: '', note: '', tags: [],
+          name: '', phone: '', deadline: daysFromNow(2),
+          category: state.categories[0], shelf: 'M'
+        };
+        state.screen = 'camera';
+        render();
+      }
+      else if (a === 'camera') {
+        if (state.newItem && state.newItem.photo) {
+          if (confirm('Új fotó?')) { state.screen = 'camera'; render(); }
+        } else {
+          state.screen = 'camera'; render();
+        }
+      }
+      else if (a === 'scanner') { state.screen = 'scanner'; render(); }
+      else if (a === 'cancelCamera') { stopCamera(); state.screen = state.newItem ? 'newItem' : 'list'; render(); }
+      else if (a === 'cancelScanner') { stopScanner(); state.screen = 'list'; render(); }
+      else if (a === 'markAll') {
+        const c = state.cards.find(x => x.id === state.detailId);
+        askShelfForAll(c);
+      }
+      else if (a === 'pick') {
+        const c = state.cards.find(x => x.id === state.detailId);
+        c.picked = true; state.screen = 'list'; render();
+      }
+      else if (a === 'unpick') {
+        const c = state.cards.find(x => x.id === state.detailId);
+        c.picked = false; render();
+      }
+      else if (a === 'addItemToCard') {
+        state.newItem = {
+          photo: null, aiName: '', note: '', tags: [],
+          name: '', phone: '', deadline: daysFromNow(2),
+          category: state.categories[0], shelf: 'M',
+          existingId: state.detailId
+        };
+        state.screen = 'camera'; render();
+      }
+      else if (a === 'addCat') { const v = prompt('Új kategória'); if (v && v.trim()) { state.categories.push(v.trim()); render(); } }
+      else if (a === 'addShelf') { const v = prompt('Új polc'); if (v && v.trim()) { state.shelves.push(v.trim()); render(); } }
+      else if (a === 'addTag') { const v = prompt('Új címke'); if (v && v.trim()) { state.tags.push(v.trim()); render(); } }
+    });
+  });
+
+  document.querySelectorAll('[data-filter]').forEach(el => {
+    el.addEventListener('click', () => { state.filter = el.dataset.filter; render(); });
+  });
+
+  document.querySelectorAll('[data-color]').forEach(el => {
+    el.addEventListener('click', () => { state.myColor = el.dataset.color; render(); });
+  });
+
+  document.querySelectorAll('[data-tag]').forEach(el => {
+    el.addEventListener('click', () => {
+      const t = el.dataset.tag;
+      const n = state.newItem;
+      if (n.tags.includes(t)) {
+        n.tags = n.tags.filter(x => x !== t);
+        n.note = n.note.split(', ').filter(x => x !== t).join(', ');
+      } else {
+        n.tags.push(t);
+        n.note = [n.note, t].filter(Boolean).join(', ');
+      }
+      render();
+    });
+  });
+
+  document.querySelectorAll('[data-toggle-item]').forEach(el => {
+    el.addEventListener('click', () => {
+      const c = state.cards.find(x => x.id === state.detailId);
+      const it = c.items.find(i => i.id === el.dataset.toggleItem);
+      if (!it.done) {
+        askShelf(c, it);
+      } else {
+        it.done = false;
+        it.shelf = 'M';
+        render();
+      }
+    });
+  });
+
+  document.querySelectorAll('[data-del-cat]').forEach(el => {
+    el.addEventListener('click', (e) => { e.stopPropagation(); state.categories = state.categories.filter(c => c !== el.dataset.delCat); render(); });
+  });
+  document.querySelectorAll('[data-del-shelf]').forEach(el => {
+    el.addEventListener('click', (e) => { e.stopPropagation(); state.shelves = state.shelves.filter(s => s !== el.dataset.delShelf); render(); });
+  });
+  document.querySelectorAll('[data-del-tag]').forEach(el => {
+    el.addEventListener('click', (e) => { e.stopPropagation(); state.tags = state.tags.filter(t => t !== el.dataset.delTag); render(); });
+  });
+
+  const nameField = document.getElementById('nameField');
+  if (nameField) nameField.addEventListener('input', e => { state.newItem.name = e.target.value; updateSaveBtn(); });
+  const phoneField = document.getElementById('phoneField');
+  if (phoneField) phoneField.addEventListener('input', e => { state.newItem.phone = e.target.value; });
+  const noteField = document.getElementById('noteField');
+  if (noteField) noteField.addEventListener('input', e => { state.newItem.note = e.target.value; updateSaveBtn(); });
+  const deadlineField = document.getElementById('deadlineField');
+  if (deadlineField) deadlineField.addEventListener('change', e => { state.newItem.deadline = e.target.value; });
+  const catField = document.getElementById('catField');
+  if (catField) catField.addEventListener('change', e => { state.newItem.category = e.target.value; });
+  const shelfField = document.getElementById('shelfField');
+  if (shelfField) shelfField.addEventListener('change', e => { state.newItem.shelf = e.target.value; });
+
+  const shutterBtn = document.getElementById('shutterBtn');
+  if (shutterBtn) shutterBtn.addEventListener('click', takePhoto);
+}
+
+function askShelf(card, item) {
+  const pShelves = state.shelves.filter(s => s !== 'M');
+  const options = pShelves.length > 0 ? pShelves : ['P1','P2','P3'];
+  const choice = prompt(
+    'Hova kerül a kész tárgy?\n' + options.map((s,i) => `${i+1}. ${s}`).join('\n') + '\n\nÍrd be a számot (vagy hagyd üresen, marad M-en):',
+    '1'
+  );
+  const idx = parseInt(choice) - 1;
+  item.done = true;
+  if (!isNaN(idx) && options[idx]) {
+    item.shelf = options[idx];
+  } else {
+    item.shelf = 'M';
+  }
+  render();
+}
+
+function askShelfForAll(card) {
+  const pShelves = state.shelves.filter(s => s !== 'M');
+  const options = pShelves.length > 0 ? pShelves : ['P1','P2','P3'];
+  const choice = prompt(
+    'Hova kerülnek a kész tárgyak?\n' + options.map((s,i) => `${i+1}. ${s}`).join('\n') + '\n\nÍrd be a számot (vagy hagyd üresen, marad M-en):',
+    '1'
+  );
+  const idx = parseInt(choice) - 1;
+  const shelf = (!isNaN(idx) && options[idx]) ? options[idx] : 'M';
+  card.items.forEach(i => { i.done = true; i.shelf = shelf; });
+  render();
+}
+
+function updateSaveBtn() {
+  const btn = document.getElementById('saveBtn');
+  if (!btn) return;
+  const n = state.newItem;
+  btn.disabled = !(n.note.trim() && n.name.trim());
+}
+
+function saveNewItem() {
+  const n = state.newItem;
+  if (!n || !n.note.trim() || !n.name.trim()) return;
+  const newItem = {
+    id: uid(), photo: n.photo, aiName: n.aiName || '—',
+    note: n.note.trim(), done: false,
+    category: n.category, shelf: n.shelf || 'M'
+  };
+  if (n.existingId) {
+    const c = state.cards.find(x => x.id === n.existingId);
+    if (c) c.items.push(newItem);
+  } else {
+    state.cards.unshift({
+      id: 'M-' + Math.floor(Math.random() * 9000 + 1000),
+      name: n.name.trim(), phone: n.phone.trim(),
+      color: state.myColor, deadline: n.deadline,
+      items: [newItem], picked: false
+    });
+  }
+  state.newItem = null;
+  state.screen = 'list';
+  render();
+}
+
+render();
+</script>
+</body>
+</html>
