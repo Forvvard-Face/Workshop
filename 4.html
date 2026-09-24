@@ -99,14 +99,39 @@ h2{font-size:30px;font-weight:800;letter-spacing:-.8px;padding:8px 20px 6px}
 .status-btn:active{transform:scale(.96)}
 .status-btn.done{background:#32D74B;color:#000}
 .empty{text-align:center;padding:80px 20px;color:#48484A;font-size:16px;font-weight:600}
+.sync-badge{position:fixed;top:80px;right:20px;background:#32D74B;color:#000;font-size:12px;font-weight:700;padding:6px 12px;border-radius:12px;opacity:0;transition:opacity .3s;z-index:50;pointer-events:none}
+.sync-badge.on{opacity:1}
+.loading{position:fixed;inset:0;background:#0A0A0B;display:flex;align-items:center;justify-content:center;z-index:999;color:#8E8E93;font-size:15px;font-weight:600}
 </style>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, doc, onSnapshot, setDoc, updateDoc, deleteDoc, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCrtFUa87RCm1B3tjKZaFn6Tryg8uOaqNU",
+  authDomain: "muhely-6833c.firebaseapp.com",
+  projectId: "muhely-6833c",
+  storageBucket: "muhely-6833c.firebasestorage.app",
+  messagingSenderId: "398361479150",
+  appId: "1:398361479150:web:76778648ef7330dfd7b0ff"
+};
+
+const fbApp = initializeApp(firebaseConfig);
+const db = getFirestore(fbApp);
+window.__db = db;
+window.__fb = { collection, doc, onSnapshot, setDoc, updateDoc, deleteDoc, serverTimestamp };
+window.dispatchEvent(new Event('fb-ready'));
+</script>
 </head>
 <body>
 <div id="app"></div>
+<div class="sync-badge" id="syncBadge">✓ Szinkron</div>
+<div class="loading" id="loading">Csatlakozás...</div>
 
 <script>
-const LS_KEY = 'muhely_v4';
+// ===== ÁLLAPOT =====
 const defaultState = {
   screen: 'list', myColor: 'red', filter: 'active',
   cards: [], detailId: null, newItem: null,
@@ -115,41 +140,90 @@ const defaultState = {
   shelves: ['M','P1','P2','P3']
 };
 
-let state = loadState();
+let state = JSON.parse(JSON.stringify(defaultState));
+state.myColor = localStorage.getItem('myColor') || 'red';
 
-function loadState() {
-  try {
-    const raw = localStorage.getItem(LS_KEY);
-    if (raw) return Object.assign({}, defaultState, JSON.parse(raw));
-  } catch(e) {}
-  return JSON.parse(JSON.stringify(defaultState));
+let fbReady = false;
+
+function showSync() {
+  const b = document.getElementById('syncBadge');
+  if (!b) return;
+  b.classList.add('on');
+  setTimeout(() => b.classList.remove('on'), 1200);
+}
+
+function hideLoading() {
+  const l = document.getElementById('loading');
+  if (l) l.style.display = 'none';
+}
+
+// ===== FIREBASE CSATLAKOZÁS =====
+window.addEventListener('fb-ready', () => {
+  fbReady = true;
+  const { collection, onSnapshot } = window.__fb;
+  const db = window.__db;
+
+  onSnapshot(collection(db, 'cards'), (snap) => {
+    const cards = [];
+    snap.forEach(d => {
+      const data = d.data();
+      cards.push({ id: d.id, ...data });
+    });
+    cards.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    state.cards = cards;
+    hideLoading();
+    showSync();
+    if (state.screen === 'list' || state.screen === 'detail') render();
+  }, (err) => {
+    console.error('Firestore hiba:', err);
+    hideLoading();
+  });
+});
+
+// ===== MENTÉS A FELHŐBE =====
+async function saveCardToCloud(card) {
+  if (!fbReady) { console.warn('Firebase nem kész'); return; }
+  const { doc, setDoc, serverTimestamp } = window.__fb;
+  const db = window.__db;
+  const data = { ...card, updatedAt: serverTimestamp() };
+  if (!data.createdAt) data.createdAt = Date.now();
+  await setDoc(doc(db, 'cards', card.id), data, { merge: true });
+}
+
+async function updateCardInCloud(cardId, updates) {
+  if (!fbReady) return;
+  const { doc, updateDoc, serverTimestamp } = window.__fb;
+  const db = window.__db;
+  await updateDoc(doc(db, 'cards', cardId), { ...updates, updatedAt: serverTimestamp() });
+}
+
+async function deleteCardFromCloud(cardId) {
+  if (!fbReady) return;
+  const { doc, deleteDoc } = window.__fb;
+  const db = window.__db;
+  await deleteDoc(doc(db, 'cards', cardId));
 }
 
 function saveState() {
-  localStorage.setItem(LS_KEY, JSON.stringify({
-    myColor: state.myColor, cards: state.cards,
-    tags: state.tags, categories: state.categories, shelves: state.shelves
-  }));
+  localStorage.setItem('myColor', state.myColor);
 }
 
+// ===== SEGÉDFÜGGVÉNYEK =====
 function daysFromNow(n) {
   const d = new Date(); d.setDate(d.getDate() + n);
   return d.toISOString().slice(0, 10);
 }
-
 function daysUntil(dateStr) {
   const d = new Date(dateStr); d.setHours(0,0,0,0);
   const t = new Date(); t.setHours(0,0,0,0);
   return Math.round((d - t) / 86400000);
 }
-
 function daysLabel(days) {
   if (days < 0) return `${-days} napja lejárt`;
   if (days === 0) return 'ma';
   if (days === 1) return 'holnap';
   return `${days} nap`;
 }
-
 function formatPhone(raw) {
   if (!raw) return '';
   let s = String(raw).replace(/[^\d+]/g, '');
@@ -158,21 +232,16 @@ function formatPhone(raw) {
   if (s.startsWith('06')) s = '0' + s.slice(2);
   if (/^0\d{9}$/.test(s)) {
     const rest = s.slice(1);
-    if (rest.startsWith('1')) {
-      return `1/ ${rest.slice(1,4)} ${rest.slice(4,6)} ${rest.slice(6,8)}`;
-    }
+    if (rest.startsWith('1')) return `1/ ${rest.slice(1,4)} ${rest.slice(4,6)} ${rest.slice(6,8)}`;
     return `${rest.slice(0,2)}/ ${rest.slice(2,5)} ${rest.slice(5,7)} ${rest.slice(7,9)}`;
   }
   if (s.startsWith('+')) {
     const digits = s.slice(1);
-    if (digits.length > 10) {
-      return '+' + digits.replace(/(\d{3})(\d{3})(\d{3})(\d+)/, '$1 $2 $3 $4');
-    }
+    if (digits.length > 10) return '+' + digits.replace(/(\d{3})(\d{3})(\d{3})(\d+)/, '$1 $2 $3 $4');
     return '+' + digits;
   }
   return raw;
 }
-
 function uid() { return Math.random().toString(36).slice(2,9); }
 
 const app = document.getElementById('app');
@@ -187,12 +256,11 @@ function render() {
   attachEvents();
   if (state.screen === 'camera') startCamera();
   if (state.screen === 'scanner') startScanner();
-  saveState();
 }
 
 function renderList() {
   const active = state.cards.filter(c => !c.picked);
-  const done = state.cards.filter(c => !c.picked && c.items.length > 0 && c.items.every(i => i.done));
+  const done = state.cards.filter(c => !c.picked && c.items && c.items.length > 0 && c.items.every(i => i.done));
   const picked = state.cards.filter(c => c.picked);
   let list = active;
   if (state.filter === 'done') list = done;
@@ -242,7 +310,7 @@ function pill(key, label) {
 
 function deadlineColor(card) {
   if (card.picked) return 'gray';
-  const allDone = card.items.length > 0 && card.items.every(i => i.done);
+  const allDone = card.items && card.items.length > 0 && card.items.every(i => i.done);
   if (allDone) return 'gray';
   const days = daysUntil(card.deadline);
   if (days <= 0) return 'red';
@@ -262,7 +330,7 @@ function renderCard(card) {
       </div>
       <div class="card-meta ${metaClass}">${daysLabel(days)}</div>
       <div class="thumbs">
-        ${card.items.map(it => `
+        ${(card.items || []).map(it => `
           <div class="thumb">
             ${it.photo ? `<img src="${it.photo}" alt="">` : '📷'}
             ${it.done ? '<div class="check">✓</div>' : ''}
@@ -341,7 +409,7 @@ function renderDetail() {
       <h2>${card.name}</h2>
       <div class="sub">${formatPhone(card.phone)} · ${card.id}</div>
       <div class="item-list">
-        ${card.items.map(it => `
+        ${(card.items || []).map(it => `
           <div class="item-card">
             <div class="item-photo">
               ${it.photo ? `<img src="${it.photo}" alt="">` : 'Fotó'}
@@ -458,7 +526,7 @@ function takePhoto() {
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
   canvas.getContext('2d').drawImage(video, 0, 0);
-  const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+  const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
   if (state.newItem) {
     state.newItem.photo = dataUrl;
   }
@@ -516,7 +584,7 @@ function attachEvents() {
   });
 
   document.querySelectorAll('[data-action]').forEach(el => {
-    el.addEventListener('click', (e) => {
+    el.addEventListener('click', async (e) => {
       e.stopPropagation();
       const a = el.dataset.action;
       if (a === 'settings') { state.screen = 'settings'; render(); }
@@ -546,22 +614,23 @@ function attachEvents() {
       }
       else if (a === 'pick') {
         const c = state.cards.find(x => x.id === state.detailId);
-        c.picked = true; state.screen = 'list'; render();
+        await updateCardInCloud(c.id, { picked: true });
       }
       else if (a === 'unpick') {
         const c = state.cards.find(x => x.id === state.detailId);
-        c.picked = false; render();
+        await updateCardInCloud(c.id, { picked: false });
       }
       else if (a === 'addItemToCard') {
+        const parent = state.cards.find(x => x.id === state.detailId);
         state.newItem = {
           photo: null, aiName: '', note: '', tags: [],
-          name: '', phone: '', deadline: daysFromNow(2),
+          name: parent.name, phone: parent.phone, deadline: daysFromNow(2),
           category: state.categories[0], shelf: 'M',
           existingId: state.detailId
         };
         state.screen = 'camera'; render();
       }
-      else if (a === 'addCat') { const v = prompt('Új kategória'); if (v && v.trim()) { state.categories.push(v.trim()); render(); } }
+      else if (a === 'addCat') { const v = prompt('Új kategória'); if (v && v.trim()) { state.categories.push(v.trim()); saveState(); render(); } }
       else if (a === 'addShelf') { const v = prompt('Új polc'); if (v && v.trim()) { state.shelves.push(v.trim()); render(); } }
       else if (a === 'addTag') { const v = prompt('Új címke'); if (v && v.trim()) { state.tags.push(v.trim()); render(); } }
     });
@@ -572,7 +641,7 @@ function attachEvents() {
   });
 
   document.querySelectorAll('[data-color]').forEach(el => {
-    el.addEventListener('click', () => { state.myColor = el.dataset.color; render(); });
+    el.addEventListener('click', () => { state.myColor = el.dataset.color; saveState(); render(); });
   });
 
   document.querySelectorAll('[data-tag]').forEach(el => {
@@ -591,15 +660,14 @@ function attachEvents() {
   });
 
   document.querySelectorAll('[data-toggle-item]').forEach(el => {
-    el.addEventListener('click', () => {
+    el.addEventListener('click', async () => {
       const c = state.cards.find(x => x.id === state.detailId);
       const it = c.items.find(i => i.id === el.dataset.toggleItem);
       if (!it.done) {
         askShelf(c, it);
       } else {
-        it.done = false;
-        it.shelf = 'M';
-        render();
+        const newItems = c.items.map(i => i.id === it.id ? { ...i, done: false, shelf: 'M' } : i);
+        await updateCardInCloud(c.id, { items: newItems });
       }
     });
   });
@@ -626,8 +694,9 @@ function attachEvents() {
   if (catField) catField.addEventListener('change', e => { state.newItem.category = e.target.value; });
   const shelfField = document.getElementById('shelfField');
   if (shelfField) shelfField.addEventListener('change', e => { state.newItem.shelf = e.target.value; });
-const saveBtn = document.getElementById('saveBtn');
-if (saveBtn) saveBtn.addEventListener('click', saveNewItem);
+
+  const saveBtn = document.getElementById('saveBtn');
+  if (saveBtn) saveBtn.addEventListener('click', saveNewItem);
 
   const shutterBtn = document.getElementById('shutterBtn');
   if (shutterBtn) shutterBtn.addEventListener('click', takePhoto);
@@ -641,13 +710,9 @@ function askShelf(card, item) {
     '1'
   );
   const idx = parseInt(choice) - 1;
-  item.done = true;
-  if (!isNaN(idx) && options[idx]) {
-    item.shelf = options[idx];
-  } else {
-    item.shelf = 'M';
-  }
-  render();
+  const shelf = (!isNaN(idx) && options[idx]) ? options[idx] : 'M';
+  const newItems = card.items.map(i => i.id === item.id ? { ...i, done: true, shelf: shelf } : i);
+  updateCardInCloud(card.id, { items: newItems });
 }
 
 function askShelfForAll(card) {
@@ -659,8 +724,8 @@ function askShelfForAll(card) {
   );
   const idx = parseInt(choice) - 1;
   const shelf = (!isNaN(idx) && options[idx]) ? options[idx] : 'M';
-  card.items.forEach(i => { i.done = true; i.shelf = shelf; });
-  render();
+  const newItems = card.items.map(i => ({ ...i, done: true, shelf: shelf }));
+  updateCardInCloud(card.id, { items: newItems });
 }
 
 function updateSaveBtn() {
@@ -669,11 +734,13 @@ function updateSaveBtn() {
   const n = state.newItem;
   btn.disabled = !(n.note.trim() && n.name.trim());
 }
-function saveNewItem() {
+
+async function saveNewItem() {
   const n = state.newItem;
   if (!n) { alert('Hiba: nincs új tárgy.'); return; }
   if (!n.name || !n.name.trim()) { alert('Hiányzik a név.'); return; }
   if (!n.note || !n.note.trim()) { alert('Hiányzik a megjegyzés.'); return; }
+
   const newItem = {
     id: uid(),
     photo: n.photo,
@@ -683,25 +750,33 @@ function saveNewItem() {
     category: n.category,
     shelf: n.shelf || 'M'
   };
+
   if (n.existingId) {
     const c = state.cards.find(x => x.id === n.existingId);
-    if (c) c.items.push(newItem);
+    if (c) {
+      const newItems = [...(c.items || []), newItem];
+      await updateCardInCloud(c.id, { items: newItems });
+    }
   } else {
-    state.cards.unshift({
-      id: 'M-' + Math.floor(Math.random() * 9000 + 1000),
+    const cardId = 'M-' + Math.floor(Math.random() * 9000 + 1000);
+    const card = {
+      id: cardId,
       name: n.name.trim(),
       phone: n.phone.trim(),
       color: state.myColor,
       deadline: n.deadline,
       items: [newItem],
-      picked: false
-    });
+      picked: false,
+      createdAt: Date.now()
+    };
+    await saveCardToCloud(card);
   }
+
   state.newItem = null;
   state.screen = 'list';
   render();
 }
-alert('A JS fut!');
+
 render();
 </script>
 </body>
