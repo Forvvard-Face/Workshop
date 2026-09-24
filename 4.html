@@ -672,7 +672,9 @@ function updateSaveBtn() {
 
 function saveNewItem() {
   const n = state.newItem;
+  alert('newItem: ' + JSON.stringify({ name: n?.name, note: n?.note, hasPhoto: !!n?.photo }));
   if (!n || !n.note.trim() || !n.name.trim()) return;
+  ...
   const newItem = {
     id: uid(), photo: n.photo, aiName: n.aiName || '—',
     note: n.note.trim(), done: false,
