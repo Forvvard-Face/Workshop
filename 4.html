@@ -626,6 +626,8 @@ function attachEvents() {
   if (catField) catField.addEventListener('change', e => { state.newItem.category = e.target.value; });
   const shelfField = document.getElementById('shelfField');
   if (shelfField) shelfField.addEventListener('change', e => { state.newItem.shelf = e.target.value; });
+const saveBtn = document.getElementById('saveBtn');
+if (saveBtn) saveBtn.addEventListener('click', saveNewItem);
 
   const shutterBtn = document.getElementById('shutterBtn');
   if (shutterBtn) shutterBtn.addEventListener('click', takePhoto);
