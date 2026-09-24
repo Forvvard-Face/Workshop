@@ -672,18 +672,9 @@ function updateSaveBtn() {
 
 function saveNewItem() {
   const n = state.newItem;
-  if (!n) {
-    alert('Hiba: nincs új tárgy.');
-    return;
-  }
-  if (!n.name.trim()) {
-    alert('Hiányzik a név.');
-    return;
-  }
-  if (!n.note.trim()) {
-    alert('Hiányzik a megjegyzés.');
-    return;
-  }
+  if (!n) { alert('Hiba: nincs új tárgy.'); return; }
+  if (!n.name || !n.name.trim()) { alert('Hiányzik a név.'); return; }
+  if (!n.note || !n.note.trim()) { alert('Hiányzik a megjegyzés.'); return; }
   const newItem = {
     id: uid(),
     photo: n.photo,
@@ -710,9 +701,40 @@ function saveNewItem() {
   state.newItem = null;
   state.screen = 'list';
   render();
-}
-
-render();
+}function saveNewItem() {
+  const n = state.newItem;
+  if (!n) { alert('Hiba: nincs új tárgy.'); return; }
+  if (!n.name || !n.name.trim()) { alert('Hiányzik a név.'); return; }
+  if (!n.note || !n.note.trim()) { alert('Hiányzik a megjegyzés.'); return; }
+  const newItem = {
+    id: uid(),
+    photo: n.photo,
+    aiName: n.aiName || '—',
+    note: n.note.trim(),
+    done: false,
+    category: n.category,
+    shelf: n.shelf || 'M'
+  };
+  if (n.existingId) {
+    const c = state.cards.find(x => x.id === n.existingId);
+    if (c) c.items.push(newItem);
+  } else {
+    state.cards.unshift({
+      id: 'M-' + Math.floor(Math.random() * 9000 + 1000),
+      name: n.name.trim(),
+      phone: n.phone.trim(),
+      color: state.myColor,
+      deadline: n.deadline,
+      items: [newItem],
+      picked: false
+    });
+  }
+  state.newItem = null;
+  state.screen = 'list';
+  render();
+}newItem = null;
+  state.screen = 'list';
+  render();
 </script>
 </body>
 </html>
