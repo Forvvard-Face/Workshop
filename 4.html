@@ -672,13 +672,26 @@ function updateSaveBtn() {
 
 function saveNewItem() {
   const n = state.newItem;
-  alert('newItem: ' + JSON.stringify({ name: n?.name, note: n?.note, hasPhoto: !!n?.photo }));
-  if (!n || !n.note.trim() || !n.name.trim()) return;
-  ...
+  if (!n) {
+    alert('Hiba: nincs új tárgy.');
+    return;
+  }
+  if (!n.name.trim()) {
+    alert('Hiányzik a név.');
+    return;
+  }
+  if (!n.note.trim()) {
+    alert('Hiányzik a megjegyzés.');
+    return;
+  }
   const newItem = {
-    id: uid(), photo: n.photo, aiName: n.aiName || '—',
-    note: n.note.trim(), done: false,
-    category: n.category, shelf: n.shelf || 'M'
+    id: uid(),
+    photo: n.photo,
+    aiName: n.aiName || '—',
+    note: n.note.trim(),
+    done: false,
+    category: n.category,
+    shelf: n.shelf || 'M'
   };
   if (n.existingId) {
     const c = state.cards.find(x => x.id === n.existingId);
@@ -686,9 +699,12 @@ function saveNewItem() {
   } else {
     state.cards.unshift({
       id: 'M-' + Math.floor(Math.random() * 9000 + 1000),
-      name: n.name.trim(), phone: n.phone.trim(),
-      color: state.myColor, deadline: n.deadline,
-      items: [newItem], picked: false
+      name: n.name.trim(),
+      phone: n.phone.trim(),
+      color: state.myColor,
+      deadline: n.deadline,
+      items: [newItem],
+      picked: false
     });
   }
   state.newItem = null;
