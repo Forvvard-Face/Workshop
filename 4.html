@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="hu">
+<lang="hu">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
@@ -669,7 +669,6 @@ function updateSaveBtn() {
   const n = state.newItem;
   btn.disabled = !(n.note.trim() && n.name.trim());
 }
-
 function saveNewItem() {
   const n = state.newItem;
   if (!n) { alert('Hiba: nincs új tárgy.'); return; }
@@ -701,40 +700,9 @@ function saveNewItem() {
   state.newItem = null;
   state.screen = 'list';
   render();
-}function saveNewItem() {
-  const n = state.newItem;
-  if (!n) { alert('Hiba: nincs új tárgy.'); return; }
-  if (!n.name || !n.name.trim()) { alert('Hiányzik a név.'); return; }
-  if (!n.note || !n.note.trim()) { alert('Hiányzik a megjegyzés.'); return; }
-  const newItem = {
-    id: uid(),
-    photo: n.photo,
-    aiName: n.aiName || '—',
-    note: n.note.trim(),
-    done: false,
-    category: n.category,
-    shelf: n.shelf || 'M'
-  };
-  if (n.existingId) {
-    const c = state.cards.find(x => x.id === n.existingId);
-    if (c) c.items.push(newItem);
-  } else {
-    state.cards.unshift({
-      id: 'M-' + Math.floor(Math.random() * 9000 + 1000),
-      name: n.name.trim(),
-      phone: n.phone.trim(),
-      color: state.myColor,
-      deadline: n.deadline,
-      items: [newItem],
-      picked: false
-    });
-  }
-  state.newItem = null;
-  state.screen = 'list';
-  render();
-}newItem = null;
-  state.screen = 'list';
-  render();
+}
+
+render();
 </script>
 </body>
 </html>
